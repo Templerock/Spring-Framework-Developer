@@ -1,0 +1,11 @@
+${AnsiColor.BRIGHT_BLUE}
+    ____  ____  ____  ____  ____  ____  _____
+   / __ \/ __ \/ __ \/ __ \/ __ \/ __ \/ ___/
+  / /_/ / /_/ / /_/ / /_/ / /_/ / /_/ / // /
+ / .__/ .__/ .__/ .__/ .__/ .__/ |___/ |___/
+/_/  /_/  /_/  /_/  /_/  /_/  /___/ |___/
+${AnsiColor.GREEN}
+ :: Student Testing Application ::
+${AnsiColor.YELLOW}
+ :: Spring Boot ${spring-boot.version} ::
+${AnsiColor.DEFAULT}
