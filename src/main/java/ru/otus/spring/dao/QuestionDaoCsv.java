@@ -1,5 +1,9 @@
 package ru.otus.spring.dao;
 
+import org.springframework.core.io.Resource;
+import ru.otus.spring.domain.Answer;
+import ru.otus.spring.domain.Question;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -8,11 +12,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
-import org.springframework.core.io.Resource;
-
-import ru.otus.spring.domain.Answer;
-import ru.otus.spring.domain.Question;
 
 public class QuestionDaoCsv implements QuestionDao {
 

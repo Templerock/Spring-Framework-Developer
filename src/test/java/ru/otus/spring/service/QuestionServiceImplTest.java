@@ -1,12 +1,11 @@
 package ru.otus.spring.service;
 
-import java.util.List;
-
 import org.junit.jupiter.api.Test;
-
 import ru.otus.spring.dao.QuestionDao;
 import ru.otus.spring.domain.Answer;
 import ru.otus.spring.domain.Question;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertSame;
 

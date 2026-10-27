@@ -1,20 +1,19 @@
 package ru.otus.spring.service;
 
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-
 import org.junit.jupiter.api.Test;
-
+import ru.otus.spring.config.AppProperties;
 import ru.otus.spring.domain.Answer;
 import ru.otus.spring.domain.Question;
 import ru.otus.spring.domain.Student;
 import ru.otus.spring.domain.TestResult;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Locale;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 class TestServiceImplTest {
 
@@ -28,7 +27,10 @@ class TestServiceImplTest {
         IOService ioService = new ScriptedIOService(
                 new PrintStream(new ByteArrayOutputStream(), true, StandardCharsets.UTF_8),
                 List.of("inversion of control", "wrong answer"));
-        TestService testService = new TestServiceImpl(() -> questions, ioService, 2);
+        MessageService messageService = MessageServiceTestFactory.create(Locale.ENGLISH);
+        AppProperties appProperties = new AppProperties();
+        appProperties.getTest().setPassThreshold(2);
+        TestService testService = new TestServiceImpl(() -> questions, ioService, messageService, appProperties);
 
         TestResult result = testService.runTest(new Student("Ivan", "Petrov"));
 
@@ -45,7 +47,10 @@ class TestServiceImplTest {
         IOService ioService = new ScriptedIOService(
                 new PrintStream(new ByteArrayOutputStream(), true, StandardCharsets.UTF_8),
                 List.of("A", "B"));
-        TestService testService = new TestServiceImpl(() -> questions, ioService, 2);
+        MessageService messageService = MessageServiceTestFactory.create(Locale.ENGLISH);
+        AppProperties appProperties = new AppProperties();
+        appProperties.getTest().setPassThreshold(2);
+        TestService testService = new TestServiceImpl(() -> questions, ioService, messageService, appProperties);
 
         TestResult result = testService.runTest(new Student("Ivan", "Petrov"));
 

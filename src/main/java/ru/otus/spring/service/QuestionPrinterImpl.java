@@ -1,21 +1,25 @@
 package ru.otus.spring.service;
 
-import java.util.List;
-
+import org.springframework.stereotype.Component;
 import ru.otus.spring.domain.Answer;
 import ru.otus.spring.domain.Question;
 
+import java.util.List;
+
+@Component
 public class QuestionPrinterImpl implements QuestionPrinter {
 
     private final IOService ioService;
+    private final MessageService messageService;
 
-    public QuestionPrinterImpl(IOService ioService) {
+    public QuestionPrinterImpl(IOService ioService, MessageService messageService) {
         this.ioService = ioService;
+        this.messageService = messageService;
     }
 
     @Override
     public void print(List<Question> questions) {
-        ioService.printLine("Test questions:");
+        ioService.printLine(messageService.getMessage("test.questions.header"));
         for (int i = 0; i < questions.size(); i++) {
             printQuestion(i + 1, questions.get(i));
         }

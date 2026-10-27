@@ -1,0 +1,5 @@
+Что такое Spring IoC?;Инверсия управления;Внедрение зависимостей;Аспектно-ориентированное программирование
+Какая аннотация запускает приложение Spring Boot?;@SpringBootApplication;@Configuration;@ComponentScan
+Какой файл содержит настройки приложения?;application.yml;application.properties;pom.xml
+Сколько правильных ответов нужно для зачёта?;3;1;5
+Какой компонент локализует выводимые сообщения?;MessageSource;IOService;Scanner

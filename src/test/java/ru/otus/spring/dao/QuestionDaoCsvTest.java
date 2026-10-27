@@ -1,11 +1,10 @@
 package ru.otus.spring.dao;
 
-import java.util.List;
-
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
-
 import ru.otus.spring.domain.Question;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 

@@ -1,8 +1,8 @@
 package ru.otus.spring.service;
 
-import java.util.List;
-
 import ru.otus.spring.domain.Question;
+
+import java.util.List;
 
 public interface QuestionPrinter {
 

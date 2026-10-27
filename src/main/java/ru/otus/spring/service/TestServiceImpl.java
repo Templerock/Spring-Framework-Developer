@@ -1,22 +1,28 @@
 package ru.otus.spring.service;
 
-import java.util.List;
-
+import org.springframework.stereotype.Component;
+import ru.otus.spring.config.AppProperties;
 import ru.otus.spring.domain.Answer;
 import ru.otus.spring.domain.Question;
 import ru.otus.spring.domain.Student;
 import ru.otus.spring.domain.TestResult;
 
+import java.util.List;
+
+@Component
 public class TestServiceImpl implements TestService {
 
     private final QuestionService questionService;
     private final IOService ioService;
-    private final int passThreshold;
+    private final MessageService messageService;
+    private final AppProperties appProperties;
 
-    public TestServiceImpl(QuestionService questionService, IOService ioService, int passThreshold) {
+    public TestServiceImpl(QuestionService questionService, IOService ioService,
+                           MessageService messageService, AppProperties appProperties) {
         this.questionService = questionService;
         this.ioService = ioService;
-        this.passThreshold = passThreshold;
+        this.messageService = messageService;
+        this.appProperties = appProperties;
     }
 
     @Override
@@ -28,12 +34,12 @@ public class TestServiceImpl implements TestService {
                 correctAnswersCount++;
             }
         }
-        return new TestResult(student, questions.size(), correctAnswersCount, passThreshold);
+        return new TestResult(student, questions.size(), correctAnswersCount, appProperties.getTest().getPassThreshold());
     }
 
     private boolean askQuestion(Question question) {
         printQuestion(question);
-        ioService.printLine("Your answer:");
+        ioService.printLine(messageService.getMessage("test.answer.prompt"));
         String answer = ioService.readLine();
         return isCorrect(question, answer);
     }
@@ -42,7 +48,7 @@ public class TestServiceImpl implements TestService {
         ioService.printLine(question.getText());
         List<Answer> answers = question.getAnswers();
         for (int i = 0; i < answers.size(); i++) {
-            ioService.printLine((i + 1) + ") " + answers.get(i).getText());
+            ioService.printLine((i + 1) + ". " + answers.get(i).getText());
         }
     }
 

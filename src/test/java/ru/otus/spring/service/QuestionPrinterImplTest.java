@@ -1,14 +1,14 @@
 package ru.otus.spring.service;
 
+import org.junit.jupiter.api.Test;
+import ru.otus.spring.domain.Answer;
+import ru.otus.spring.domain.Question;
+
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-
-import org.junit.jupiter.api.Test;
-
-import ru.otus.spring.domain.Answer;
-import ru.otus.spring.domain.Question;
+import java.util.Locale;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -19,7 +19,8 @@ class QuestionPrinterImplTest {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         IOService ioService = new ScriptedIOService(
                 new PrintStream(output, true, StandardCharsets.UTF_8), List.of());
-        QuestionPrinter questionPrinter = new QuestionPrinterImpl(ioService);
+        MessageService messageService = MessageServiceTestFactory.create(Locale.ENGLISH);
+        QuestionPrinter questionPrinter = new QuestionPrinterImpl(ioService, messageService);
 
         questionPrinter.print(List.of(
                 new Question("What is Spring?",
@@ -33,18 +34,17 @@ class QuestionPrinterImplTest {
     }
 
     @Test
-    void printWritesAllPrintedQuestions() {
+    void printLocalizesHeaderViaMessageService() {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         IOService ioService = new ScriptedIOService(
                 new PrintStream(output, true, StandardCharsets.UTF_8), List.of());
-        QuestionPrinter questionPrinter = new QuestionPrinterImpl(ioService);
+        MessageService messageService = MessageServiceTestFactory.create(new Locale("ru"));
+        QuestionPrinter questionPrinter = new QuestionPrinterImpl(ioService, messageService);
 
         questionPrinter.print(List.of(
-                new Question("First question?", List.of(new Answer("First answer"))),
-                new Question("Second question?", List.of(new Answer("Second answer")))));
+                new Question("Вопрос?", List.of(new Answer("Ответ")))));
 
         String text = output.toString(StandardCharsets.UTF_8);
-        assertTrue(text.contains("First question?"));
-        assertTrue(text.contains("Second question?"));
+        assertTrue(text.contains("Вопросы теста:"));
     }
 }
