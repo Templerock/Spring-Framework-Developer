@@ -17,7 +17,9 @@ class QuestionPrinterImplTest {
     @Test
     void printWritesQuestionTextAndAnswersToOutput() {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
-        QuestionPrinter questionPrinter = new QuestionPrinterImpl(new PrintStream(output, true, StandardCharsets.UTF_8));
+        IOService ioService = new ScriptedIOService(
+                new PrintStream(output, true, StandardCharsets.UTF_8), List.of());
+        QuestionPrinter questionPrinter = new QuestionPrinterImpl(ioService);
 
         questionPrinter.print(List.of(
                 new Question("What is Spring?",
@@ -33,7 +35,9 @@ class QuestionPrinterImplTest {
     @Test
     void printWritesAllPrintedQuestions() {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
-        QuestionPrinter questionPrinter = new QuestionPrinterImpl(new PrintStream(output, true, StandardCharsets.UTF_8));
+        IOService ioService = new ScriptedIOService(
+                new PrintStream(output, true, StandardCharsets.UTF_8), List.of());
+        QuestionPrinter questionPrinter = new QuestionPrinterImpl(ioService);
 
         questionPrinter.print(List.of(
                 new Question("First question?", List.of(new Answer("First answer"))),

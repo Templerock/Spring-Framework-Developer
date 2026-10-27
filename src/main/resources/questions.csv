@@ -1,5 +1,5 @@
-Какую тему разбираем в этом задании?;Spring IoC
-Какие бины заданы в контексте?;questionDao;questionService;questionPrinter
-Есть ли в проекте кастомные классы эксепшены?;Да - QuestionReadException
-Используются ли в проекте интерфесы?;Да
-Сколько тестовых классов всего представлено в проекте;4
+What is Spring IoC?;Inversion of Control;Dependency Injection;Aspect Oriented Programming
+Which annotation marks a Java-based configuration class?;@Configuration;@Component;@Service
+Which file contains the test questions?;questions.csv;application.properties;pom.xml
+How many correct answers are required to pass the test?;3;1;5
+Which service reads the student name?;StudentService;QuestionService;TestService

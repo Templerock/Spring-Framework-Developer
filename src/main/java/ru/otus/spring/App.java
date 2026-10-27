@@ -1,9 +1,9 @@
 package ru.otus.spring;
 
-import org.springframework.context.support.ClassPathXmlApplicationContext;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
-import ru.otus.spring.service.QuestionPrinter;
-import ru.otus.spring.service.QuestionService;
+import ru.otus.spring.config.AppConfig;
+import ru.otus.spring.service.TestRunnerService;
 
 public class App {
 
@@ -11,10 +11,10 @@ public class App {
     }
 
     public static void main(String[] args) {
-        try (ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext("spring-context.xml")) {
-            QuestionService questionService = context.getBean(QuestionService.class);
-            QuestionPrinter questionPrinter = context.getBean(QuestionPrinter.class);
-            questionPrinter.print(questionService.getAllQuestions());
+        try (AnnotationConfigApplicationContext context =
+                     new AnnotationConfigApplicationContext(AppConfig.class)) {
+            TestRunnerService testRunner = context.getBean(TestRunnerService.class);
+            testRunner.run();
         }
     }
 }
