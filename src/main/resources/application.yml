@@ -3,6 +3,9 @@ spring:
     basename: messages
     encoding: UTF-8
     fallback-to-system-locale: false
+  shell:
+    interactive:
+      enabled: true
 
 application:
   locale: en
