@@ -1,0 +1,5 @@
+What is Spring IoC?;Inversion of Control;Dependency Injection;Aspect Oriented Programming
+Which annotation starts a Spring Boot application?;@SpringBootApplication;@Configuration;@ComponentScan
+Which file contains the application settings?;application.yml;application.properties;pom.xml
+How many correct answers are required to pass the test?;3;1;5
+Which component is used to make output messages localized?;MessageSource;IOService;Scanner

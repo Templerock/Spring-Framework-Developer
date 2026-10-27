@@ -1,0 +1,14 @@
+spring:
+  messages:
+    basename: messages
+    encoding: UTF-8
+    fallback-to-system-locale: false
+  shell:
+    interactive:
+      enabled: true
+
+application:
+  locale: en
+  test:
+    csv-path: "questions_%s.csv"
+    pass-threshold: 3
