@@ -1,0 +1,5 @@
+What is Spring IoC?;Inversion of Control;Dependency Injection;Aspect Oriented Programming
+Which annotation marks a Java-based configuration class?;@Configuration;@Component;@Service
+Which file contains the test questions?;questions.csv;application.properties;pom.xml
+How many correct answers are required to pass the test?;3;1;5
+Which service reads the student name?;StudentService;QuestionService;TestService
