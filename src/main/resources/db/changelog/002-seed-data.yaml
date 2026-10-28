@@ -1,0 +1,164 @@
+databaseChangeLog:
+  - changeSet:
+      id: 002-seed-data
+      author: library
+      changes:
+        - insert:
+            tableName: authors
+            columns:
+              - column:
+                  name: first_name
+                  value: Julian
+              - column:
+                  name: last_name
+                  value: Barnes
+        - insert:
+            tableName: authors
+            columns:
+              - column:
+                  name: first_name
+                  value: Agatha
+              - column:
+                  name: last_name
+                  value: Christie
+        - insert:
+            tableName: authors
+            columns:
+              - column:
+                  name: first_name
+                  value: Neil
+              - column:
+                  name: last_name
+                  value: Gaiman
+        - insert:
+            tableName: genres
+            columns:
+              - column:
+                  name: name
+                  value: Novel
+        - insert:
+            tableName: genres
+            columns:
+              - column:
+                  name: name
+                  value: Detective
+        - insert:
+            tableName: genres
+            columns:
+              - column:
+                  name: name
+                  value: Fantasy
+        - insert:
+            tableName: books
+            columns:
+              - column:
+                  name: title
+                  value: The Sense of an Ending
+              - column:
+                  name: author_id
+                  valueNumeric: 1
+              - column:
+                  name: genre_id
+                  valueNumeric: 1
+        - insert:
+            tableName: books
+            columns:
+              - column:
+                  name: title
+                  value: Murder on the Orient Express
+              - column:
+                  name: author_id
+                  valueNumeric: 2
+              - column:
+                  name: genre_id
+                  valueNumeric: 2
+        - insert:
+            tableName: books
+            columns:
+              - column:
+                  name: title
+                  value: The Ocean at the End of the Lane
+              - column:
+                  name: author_id
+                  valueNumeric: 3
+              - column:
+                  name: genre_id
+                  valueNumeric: 3
+        - insert:
+            tableName: authors
+            columns:
+              - column:
+                  name: first_name
+                  value: Joanne
+              - column:
+                  name: last_name
+                  value: Rowling
+        - insert:
+            tableName: authors
+            columns:
+              - column:
+                  name: first_name
+                  value: George
+              - column:
+                  name: last_name
+                  value: Orwell
+        - insert:
+            tableName: genres
+            columns:
+              - column:
+                  name: name
+                  value: Adventure
+        - insert:
+            tableName: genres
+            columns:
+              - column:
+                  name: name
+                  value: Dystopia
+        - insert:
+            tableName: books
+            columns:
+              - column:
+                  name: title
+                  value: Harry Potter and the Philosopher's Stone
+              - column:
+                  name: author_id
+                  valueNumeric: 4
+              - column:
+                  name: genre_id
+                  valueNumeric: 3
+        - insert:
+            tableName: books
+            columns:
+              - column:
+                  name: title
+                  value: The Cuckoo's Calling
+              - column:
+                  name: author_id
+                  valueNumeric: 4
+              - column:
+                  name: genre_id
+                  valueNumeric: 2
+        - insert:
+            tableName: books
+            columns:
+              - column:
+                  name: title
+                  value: Animal Farm
+              - column:
+                  name: author_id
+                  valueNumeric: 5
+              - column:
+                  name: genre_id
+                  valueNumeric: 5
+        - insert:
+            tableName: books
+            columns:
+              - column:
+                  name: title
+                  value: "1984"
+              - column:
+                  name: author_id
+                  valueNumeric: 5
+              - column:
+                  name: genre_id
+                  valueNumeric: 5
