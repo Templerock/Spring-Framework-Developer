@@ -1,6 +1,6 @@
 # Spring Library
 
-Приложение-библиотека: хранение книг, авторов и жанров в реляционной БД. Управление выполняется через интерфейс командной строки (Spring Shell): CRUD для книг, авторов и жанров.
+Приложение-библиотека: хранение книг, авторов, жанров и комментариев в реляционной БД. Управление выполняется через REST API (Spring MVC): CRUD для книг, авторов, жанров и комментариев.
 
 ## Запуск
 
@@ -8,13 +8,7 @@
 mvn spring-boot:run
 ```
 
-После старта Liquibase автоматически создаст таблицы `authors`, `genres`, `books`, заполнит их начальными данными и поднимет консоль Spring Shell:
-
-```
-shell:>
-```
-
-Выход из шелла — команда `exit`.
+После старта Liquibase автоматически создаст таблицы `authors`, `genres`, `books`, заполнит их начальными данными и поднимет веб-приложение с REST API.
 
 Консоль H2 доступна по адресу `http://localhost:8080/h2-console`:
 
@@ -65,59 +59,51 @@ shell:>
 | 1 | A moving novel about memory and aging | The Sense of an Ending (id 1) |
 | 2 | The first book about the young wizard | Harry Potter and the Philosopher's Stone (id 4) |
 
-## Команды Spring Shell
+## REST API
 
-Авторы:
+Эндпоинты принимают и возвращают DTO. Авторы: `http://localhost:8080/api/authors`
 
-| Команда | Описание |
-|---|---|
-| `author add --first-name <имя> --last-name <фамилия>` | добавить автора |
-| `author list` | список всех авторов |
-| `author get --id <id>` | показать автора по id |
-| `author update --id <id> --first-name <имя> --last-name <фамилия>` | изменить автора |
-| `author delete --id <id>` | удалить автора (если на него не ссылаются книги) |
+| Метод | URL | Описание |
+|---|---|---|
+| `GET` | `/api/authors` | список всех авторов (`AuthorDto`) |
+| `GET` | `/api/authors/{id}` | автор по id |
+| `POST` | `/api/authors` | создать автора (`{"firstName", "lastName"}`) |
+| `PUT` | `/api/authors/{id}` | изменить автора |
+| `DELETE` | `/api/authors/{id}` | удалить автора |
 
-Жанры:
+Жанры: `/api/genres` — аналогично (`GenreDto`, `{"name"}`).
 
-| Команда | Описание |
-|---|---|
-| `genre add --name <название>` | добавить жанр |
-| `genre list` | список всех жанров |
-| `genre get --id <id>` | показать жанр по id |
-| `genre update --id <id> --name <название>` | изменить жанр |
-| `genre delete --id <id>` | удалить жанр (если на него не ссылаются книги) |
+Книги: `/api/books`
 
-Книги:
+| Метод | URL | Описание |
+|---|---|---|
+| `GET` | `/api/books` | список всех книг (`BookDto`: id, title, authorId, genreId) |
+| `GET` | `/api/books/{id}` | книга по id |
+| `POST` | `/api/books` | создать книгу (`{"title", "authorId", "genreId"}`) |
+| `PUT` | `/api/books/{id}` | изменить книгу |
+| `DELETE` | `/api/books/{id}` | удалить книгу |
 
-| Команда | Описание |
-|---|---|
-| `book add --title <название> --author-id <id> --genre-id <id>` | добавить книгу (автор и жанр должны существовать) |
-| `book list` | список всех книг с авторами и жанрами |
-| `book get --id <id>` | показать книгу по id |
-| `book update --id <id> --title <название> --author-id <id> --genre-id <id>` | изменить книгу |
-| `book delete --id <id>` | удалить книгу (удаляет и комментарии книги) |
+Комментарии: `/api/comments`
 
-Комментарии к книгам:
+| Метод | URL | Описание |
+|---|---|---|
+| `GET` | `/api/comments` | список всех комментариев (`CommentDto`: id, text, bookId) |
+| `GET` | `/api/comments/{id}` | комментарий по id |
+| `POST` | `/api/comments` | создать комментарий (`{"text", "bookId"}`) |
+| `PUT` | `/api/comments/{id}` | изменить текст комментария |
+| `DELETE` | `/api/comments/{id}` | удалить комментарий |
 
-| Команда | Описание |
-|---|---|
-| `comment add --book-id <id> --text <текст>` | добавить комментарий к книге |
-| `comment list` | список всех комментариев |
-| `comment get --id <id>` | показать комментарий по id |
-| `comment update --id <id> --text <текст>` | изменить текст комментария |
-| `comment delete --id <id>` | удалить комментарий |
+Пример:
 
-## Пример сессии
-
+```bash
+curl -X POST http://localhost:8080/api/books \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Nineteen Eighty-Four","authorId":5,"genreId":5}'
 ```
-shell:> book list
-Book{id=1, The Sense of an Ending, author=[id=1, Barnes Julian], genre=[id=1, Novel]}
-Book{id=4, Harry Potter and the Philosopher's Stone, author=[id=4, Rowling Joanne], genre=[id=3, Fantasy]}
-...
 
-shell:> book add --title "Nineteen Eighty-Four" --author-id 5 --genre-id 5
-Book added: Book{...}
+## Swagger UI
 
-shell:> genre delete --id 4
-Genre with id=4 removed
-```
+Swagger UI доступен по адресу `http://localhost:8080/swagger-ui.html` — можно просмотреть OpenAPI-документацию и выполнять запросы к API прямо из браузера:
+
+- `GET /v3/api-docs` — спецификация OpenAPI (JSON)
+- `GET /swagger-ui.html` (или `/swagger-ui/index.html`) — интерактивная консоль запросов

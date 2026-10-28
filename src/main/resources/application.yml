@@ -18,6 +18,3 @@ spring:
       hibernate:
         jdbc:
           time_zone: UTC
-  shell:
-    interactive:
-      enabled: true

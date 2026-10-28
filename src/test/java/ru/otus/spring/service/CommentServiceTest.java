@@ -4,6 +4,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
+import ru.otus.spring.dto.BookDto;
+import ru.otus.spring.dto.CommentDto;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -25,8 +27,9 @@ class CommentServiceTest {
 
     private long newBookId() {
         return bookService.add("Commented Book",
-                authorService.add("Arts", "Writer").getId(),
-                genreService.add("Saga").getId()).get().getId();
+                        authorService.add("Arts", "Writer").id(),
+                        genreService.add("Saga").id())
+                .map(BookDto::id).orElseThrow();
     }
 
     @Test
@@ -43,8 +46,8 @@ class CommentServiceTest {
         assertThat(saved)
                 .get()
                 .satisfies(comment -> {
-                    assertThat(comment.getText()).isEqualTo("Worth reading");
-                    assertThat(comment.getBook().getTitle()).isEqualTo("Commented Book");
+                    assertThat(comment.text()).isEqualTo("Worth reading");
+                    assertThat(comment.bookId()).isEqualTo(bookId);
                 });
     }
 
@@ -60,20 +63,19 @@ class CommentServiceTest {
 
     @Test
     void updateChangesText() {
-        long commentId = commentService.add(newBookId(), "Old").get().getId();
+        long commentId = commentService.add(newBookId(), "Old").get().id();
 
         var updated = commentService.update(commentId, "New");
 
         assertThat(updated)
                 .get()
-                .satisfies(comment -> {
-                    assertThat(comment.getText()).isEqualTo("New");
-                });
+                .extracting(CommentDto::text)
+                .isEqualTo("New");
     }
 
     @Test
     void deleteByIdRemovesComment() {
-        long commentId = commentService.add(newBookId(), "ToDelete").get().getId();
+        long commentId = commentService.add(newBookId(), "ToDelete").get().id();
 
         commentService.deleteById(commentId);
 

@@ -22,7 +22,7 @@ class BookServiceTest {
 
     @Test
     void addReturnsEmptyWhenAuthorOrGenreNotFound() {
-        long genreId = genreService.add("Epic").getId();
+        long genreId = genreService.add("Epic").id();
 
         assertThat(bookService.add("Book", Long.MAX_VALUE, genreId)).isEmpty();
         assertThat(bookService.add("Book", 1L, Long.MAX_VALUE)).isEmpty();
@@ -30,16 +30,16 @@ class BookServiceTest {
 
     @Test
     void addCreatesBookWithAuthorAndGenre() {
-        long authorId = authorService.add("Julian", "Barnes").getId();
-        long genreId = genreService.add("Epic").getId();
+        long authorId = authorService.add("Julian", "Barnes").id();
+        long genreId = genreService.add("Epic").id();
 
         var saved = bookService.add("Flaubert's Parrot", authorId, genreId);
 
         assertThat(saved)
                 .get()
                 .satisfies(book -> {
-                    assertThat(book.getAuthor().getLastName()).isEqualTo("Barnes");
-                    assertThat(book.getGenre().getName()).isEqualTo("Epic");
+                    assertThat(book.authorId()).isEqualTo(authorId);
+                    assertThat(book.genreId()).isEqualTo(genreId);
                 });
     }
 
@@ -50,9 +50,9 @@ class BookServiceTest {
 
     @Test
     void updateReturnsEmptyWhenBookAuthorOrGenreNotFound() {
-        long authorId = authorService.add("A", "B").getId();
-        long genreId = genreService.add("G").getId();
-        long bookId = bookService.add("Book", authorId, genreId).get().getId();
+        long authorId = authorService.add("A", "B").id();
+        long genreId = genreService.add("G").id();
+        long bookId = bookService.add("Book", authorId, genreId).get().id();
 
         assertThat(bookService.update(bookId, "X", Long.MAX_VALUE, genreId)).isEmpty();
         assertThat(bookService.update(Long.MAX_VALUE, "X", authorId, genreId)).isEmpty();
@@ -60,26 +60,26 @@ class BookServiceTest {
 
     @Test
     void updateChangesExistingBook() {
-        long authorId1 = authorService.add("One", "Author").getId();
-        long authorId2 = authorService.add("Two", "Author").getId();
-        long genreId = genreService.add("Thriller").getId();
-        long bookId = bookService.add("Old", authorId1, genreId).get().getId();
+        long authorId1 = authorService.add("One", "Author").id();
+        long authorId2 = authorService.add("Two", "Author").id();
+        long genreId = genreService.add("Thriller").id();
+        long bookId = bookService.add("Old", authorId1, genreId).get().id();
 
         var updated = bookService.update(bookId, "New", authorId2, genreId);
 
         assertThat(updated)
                 .get()
                 .satisfies(book -> {
-                    assertThat(book.getTitle()).isEqualTo("New");
-                    assertThat(book.getAuthor().getId()).isEqualTo(authorId2);
+                    assertThat(book.title()).isEqualTo("New");
+                    assertThat(book.authorId()).isEqualTo(authorId2);
                 });
     }
 
     @Test
     void deleteByIdRemovesBook() {
-        long genreId = genreService.add("Drama").getId();
-        long authorId = authorService.add("To", "Del").getId();
-        long bookId = bookService.add("Doomed", authorId, genreId).get().getId();
+        long genreId = genreService.add("Drama").id();
+        long authorId = authorService.add("To", "Del").id();
+        long bookId = bookService.add("Doomed", authorId, genreId).get().id();
 
         bookService.deleteById(bookId);
 

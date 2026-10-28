@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
-import ru.otus.spring.domain.Author;
+import ru.otus.spring.dto.AuthorDto;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -19,10 +19,10 @@ class AuthorServiceTest {
     void addReturnsCreatedAuthorWithId() {
         var author = authorService.add("Lev", "Tolstoy");
 
-        assertThat(author.getId()).isPositive();
-        assertThat(authorService.getById(author.getId()))
+        assertThat(author.id()).isPositive();
+        assertThat(authorService.getById(author.id()))
                 .get()
-                .extracting(Author::getFirstName, Author::getLastName)
+                .extracting(AuthorDto::firstName, AuthorDto::lastName)
                 .containsExactly("Lev", "Tolstoy");
     }
 
@@ -40,11 +40,11 @@ class AuthorServiceTest {
     void updateChangesExistingAuthor() {
         var author = authorService.add("Old", "Name");
 
-        var updated = authorService.update(author.getId(), "New", "Name");
+        var updated = authorService.update(author.id(), "New", "Name");
 
         assertThat(updated)
                 .get()
-                .extracting(Author::getFirstName, Author::getLastName)
+                .extracting(AuthorDto::firstName, AuthorDto::lastName)
                 .containsExactly("New", "Name");
     }
 
@@ -52,8 +52,8 @@ class AuthorServiceTest {
     void deleteByIdRemovesAuthor() {
         var author = authorService.add("To", "Delete");
 
-        authorService.deleteById(author.getId());
+        authorService.deleteById(author.id());
 
-        assertThat(authorService.getById(author.getId())).isEmpty();
+        assertThat(authorService.getById(author.id())).isEmpty();
     }
 }
