@@ -2,8 +2,8 @@ package ru.otus.spring.service;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.otus.spring.dao.GenreDao;
 import ru.otus.spring.domain.Genre;
+import ru.otus.spring.repository.GenreRepository;
 
 import java.util.List;
 import java.util.Optional;
@@ -12,34 +12,35 @@ import java.util.Optional;
 @Transactional
 public class GenreService {
 
-    private final GenreDao genreDao;
+    private final GenreRepository genreRepository;
 
-    public GenreService(GenreDao genreDao) {
-        this.genreDao = genreDao;
+    public GenreService(GenreRepository genreRepository) {
+        this.genreRepository = genreRepository;
     }
 
     public Genre add(String name) {
-        return genreDao.save(new Genre(0, name));
+        return genreRepository.save(new Genre(0, name));
     }
 
     public List<Genre> getAll() {
-        return genreDao.getAll();
+        return genreRepository.findAllByOrderByNameAsc();
     }
 
     public Optional<Genre> getById(long id) {
-        return genreDao.getById(id);
+        return genreRepository.findById(id);
     }
 
     public Optional<Genre> update(long id, String name) {
-        if (genreDao.getById(id).isEmpty()) {
+        var existing = genreRepository.findById(id);
+        if (existing.isEmpty()) {
             return Optional.empty();
         }
-        var genre = genreDao.getById(id).orElseThrow();
+        var genre = existing.get();
         genre.setName(name);
-        return Optional.of(genreDao.save(genre));
+        return Optional.of(genre);
     }
 
     public void deleteById(long id) {
-        genreDao.getById(id).ifPresent(genreDao::delete);
+        genreRepository.deleteById(id);
     }
 }

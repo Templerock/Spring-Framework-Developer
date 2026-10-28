@@ -2,8 +2,8 @@ package ru.otus.spring.service;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.otus.spring.dao.CommentDao;
 import ru.otus.spring.domain.Comment;
+import ru.otus.spring.repository.CommentRepository;
 
 import java.util.List;
 import java.util.Optional;
@@ -12,11 +12,11 @@ import java.util.Optional;
 @Transactional
 public class CommentService {
 
-    private final CommentDao commentDao;
+    private final CommentRepository commentRepository;
     private final BookService bookService;
 
-    public CommentService(CommentDao commentDao, BookService bookService) {
-        this.commentDao = commentDao;
+    public CommentService(CommentRepository commentRepository, BookService bookService) {
+        this.commentRepository = commentRepository;
         this.bookService = bookService;
     }
 
@@ -25,27 +25,28 @@ public class CommentService {
         if (book.isEmpty()) {
             return Optional.empty();
         }
-        return Optional.of(commentDao.save(new Comment(0, text, book.get())));
+        return Optional.of(commentRepository.save(new Comment(0, text, book.get())));
     }
 
     public List<Comment> getAll() {
-        return commentDao.getAll();
+        return commentRepository.findAllWithBook();
     }
 
     public Optional<Comment> getById(long id) {
-        return commentDao.getById(id);
+        return commentRepository.findById(id);
     }
 
     public Optional<Comment> update(long id, String text) {
-        if (commentDao.getById(id).isEmpty()) {
+        var existing = commentRepository.findById(id);
+        if (existing.isEmpty()) {
             return Optional.empty();
         }
-        var comment = commentDao.getById(id).orElseThrow();
+        var comment = existing.get();
         comment.setText(text);
-        return Optional.of(commentDao.save(comment));
+        return Optional.of(comment);
     }
 
     public void deleteById(long id) {
-        commentDao.getById(id).ifPresent(commentDao::delete);
+        commentRepository.deleteById(id);
     }
 }
