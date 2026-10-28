@@ -3,3 +3,5 @@ databaseChangeLog:
       file: classpath:db/changelog/001-create-schema.yaml
   - include:
       file: classpath:db/changelog/002-seed-data.yaml
+  - include:
+      file: classpath:db/changelog/003-create-user.yaml
