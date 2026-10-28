@@ -1,9 +1,6 @@
 package ru.otus.spring.dao;
 
-import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.jdbc.support.GeneratedKeyHolder;
+import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Repository;
 import ru.otus.spring.domain.Genre;
 
@@ -13,70 +10,34 @@ import java.util.Optional;
 @Repository
 public class GenreDao {
 
-    private static final RowMapper<Genre> GENRE_ROW_MAPPER =
-            (rs, rowNum) -> new Genre(rs.getLong("id"), rs.getString("name"));
+    private final EntityManager em;
 
-    private final NamedParameterJdbcTemplate jdbc;
-
-    public GenreDao(NamedParameterJdbcTemplate jdbc) {
-        this.jdbc = jdbc;
+    public GenreDao(EntityManager em) {
+        this.em = em;
     }
 
     public Optional<Genre> getById(long id) {
-        List<Genre> genres = jdbc.query("""
-                        select id, name
-                        from genres
-                        where id = :id
-                        """,
-                new MapSqlParameterSource("id", id),
-                GENRE_ROW_MAPPER);
-        return genres.stream().findFirst();
+        return Optional.ofNullable(em.find(Genre.class, id));
     }
 
     public List<Genre> getAll() {
-        return jdbc.query("""
-                        select id, name
-                        from genres
-                        order by name
-                        """,
-                GENRE_ROW_MAPPER);
+        return em.createQuery("select g from Genre g order by g.name", Genre.class)
+                .getResultList();
     }
 
-    public long insert(Genre genre) {
-        var params = new MapSqlParameterSource()
-                .addValue("name", genre.getName());
-        var keyHolder = new GeneratedKeyHolder();
-        jdbc.update("""
-                        insert into genres (name)
-                        values (:name)
-                        """,
-                params,
-                keyHolder);
-        long id = keyHolder.getKey().longValue();
-        genre.setId(id);
-        return id;
+    public Genre save(Genre genre) {
+        if (genre.getId() == 0) {
+            em.persist(genre);
+            return genre;
+        }
+        return em.merge(genre);
     }
 
-    public void update(Genre genre) {
-        jdbc.update("""
-                        update genres
-                        set name = :name
-                        where id = :id
-                        """,
-                new MapSqlParameterSource()
-                        .addValue("id", genre.getId())
-                        .addValue("name", genre.getName()));
-    }
-
-    public void deleteById(long id) {
-        jdbc.update("""
-                        delete from genres
-                        where id = :id
-                        """,
-                new MapSqlParameterSource("id", id));
+    public void delete(Genre genre) {
+        em.remove(genre);
     }
 
     public long count() {
-        return jdbc.queryForObject("select count(*) from genres", new MapSqlParameterSource(), Long.class);
+        return em.createQuery("select count(g) from Genre g", Long.class).getSingleResult();
     }
 }

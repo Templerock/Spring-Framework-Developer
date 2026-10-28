@@ -2,14 +2,14 @@ package ru.otus.spring.service;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
-import org.springframework.context.annotation.Import;
-import ru.otus.spring.dao.AuthorDao;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.transaction.annotation.Transactional;
+import ru.otus.spring.domain.Author;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@JdbcTest
-@Import({AuthorService.class, AuthorDao.class})
+@SpringBootTest
+@Transactional
 class AuthorServiceTest {
 
     @Autowired
@@ -22,7 +22,7 @@ class AuthorServiceTest {
         assertThat(author.getId()).isPositive();
         assertThat(authorService.getById(author.getId()))
                 .get()
-                .extracting(a -> a.getFirstName(), a -> a.getLastName())
+                .extracting(Author::getFirstName, Author::getLastName)
                 .containsExactly("Lev", "Tolstoy");
     }
 
@@ -44,7 +44,7 @@ class AuthorServiceTest {
 
         assertThat(updated)
                 .get()
-                .extracting(a -> a.getFirstName(), a -> a.getLastName())
+                .extracting(Author::getFirstName, Author::getLastName)
                 .containsExactly("New", "Name");
     }
 

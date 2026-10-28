@@ -2,17 +2,13 @@ package ru.otus.spring.service;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
-import org.springframework.context.annotation.Import;
-import ru.otus.spring.dao.AuthorDao;
-import ru.otus.spring.dao.BookDao;
-import ru.otus.spring.dao.GenreDao;
-import ru.otus.spring.domain.Book;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@JdbcTest
-@Import({BookService.class, AuthorService.class, GenreService.class, BookDao.class, AuthorDao.class, GenreDao.class})
+@SpringBootTest
+@Transactional
 class BookServiceTest {
 
     @Autowired
@@ -42,7 +38,7 @@ class BookServiceTest {
         assertThat(saved)
                 .get()
                 .satisfies(book -> {
-                    assertThat(book.getAuthor().getId()).isEqualTo(authorId);
+                    assertThat(book.getAuthor().getLastName()).isEqualTo("Barnes");
                     assertThat(book.getGenre().getName()).isEqualTo("Epic");
                 });
     }
@@ -71,16 +67,18 @@ class BookServiceTest {
 
         var updated = bookService.update(bookId, "New", authorId2, genreId);
 
-        assertThat(updated).isPresent();
-        Book book = updated.orElseThrow();
-        assertThat(book.getTitle()).isEqualTo("New");
-        assertThat(book.getAuthor().getId()).isEqualTo(authorId2);
+        assertThat(updated)
+                .get()
+                .satisfies(book -> {
+                    assertThat(book.getTitle()).isEqualTo("New");
+                    assertThat(book.getAuthor().getId()).isEqualTo(authorId2);
+                });
     }
 
     @Test
     void deleteByIdRemovesBook() {
+        long genreId = genreService.add("Drama").getId();
         long authorId = authorService.add("To", "Del").getId();
-        long genreId = genreService.add("Mystery").getId();
         long bookId = bookService.add("Doomed", authorId, genreId).get().getId();
 
         bookService.deleteById(bookId);

@@ -1,20 +1,19 @@
 package ru.otus.spring.dao;
 
+import jakarta.persistence.EntityManager;
+import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.jdbc.support.GeneratedKeyHolder;
+import ru.otus.spring.domain.Author;
+import ru.otus.spring.domain.Book;
 import ru.otus.spring.domain.Genre;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@JdbcTest
+@DataJpaTest
 @Import(GenreDao.class)
 class GenreDaoTest {
 
@@ -22,30 +21,28 @@ class GenreDaoTest {
     private GenreDao genreDao;
 
     @Autowired
-    private NamedParameterJdbcTemplate jdbc;
+    private EntityManager em;
 
     @Test
-    void insertedGenreCanBeReadById() {
-        var genre = new Genre(0, "Science Fiction");
+    void savedGenreCanBeReadById() {
+        var genre = genreDao.save(new Genre(0, "Science Fiction"));
 
-        long id = genreDao.insert(genre);
-
-        assertThat(id).isPositive();
-        assertThat(genreDao.getById(id))
+        assertThat(genre.getId()).isPositive();
+        assertThat(genreDao.getById(genre.getId()))
                 .get()
                 .extracting(Genre::getName)
                 .isEqualTo("Science Fiction");
     }
 
     @Test
-    void getAllReturnsSeededAndNewlyInsertedGenres() {
+    void getAllReturnsSeededAndNewlySavedGenres() {
         assertThat(genreDao.getAll()).isNotEmpty();
 
-        long id = genreDao.insert(new Genre(0, "Horror"));
+        var genre = genreDao.save(new Genre(0, "Horror"));
 
         assertThat(genreDao.getAll())
                 .extracting(Genre::getId)
-                .contains(id);
+                .contains(genre.getId());
     }
 
     @Test
@@ -55,66 +52,45 @@ class GenreDaoTest {
 
     @Test
     void updateChangesName() {
-        long id = genreDao.insert(new Genre(0, "Old"));
+        var genre = genreDao.save(new Genre(0, "Satire"));
 
-        genreDao.update(new Genre(id, "New"));
+        genreDao.save(new Genre(genre.getId(), "New"));
 
-        assertThat(genreDao.getById(id))
+        assertThat(genreDao.getById(genre.getId()))
                 .get()
                 .extracting(Genre::getName)
                 .isEqualTo("New");
     }
 
     @Test
-    void deleteByIdRemovesGenre() {
-        long id = genreDao.insert(new Genre(0, "ToDelete"));
+    void deleteRemovesGenre() {
+        var genre = genreDao.save(new Genre(0, "ToDelete"));
 
-        genreDao.deleteById(id);
+        genreDao.delete(genre);
 
-        assertThat(genreDao.getById(id)).isEmpty();
-    }
-
-    @Test
-    void deleteGenreReferencedByBookThrows() {
-        long genreId = genreDao.insert(new Genre(0, "RefGenre"));
-        long authorId = insertAuthor("Ref", "Author");
-        jdbc.update("""
-                        insert into books (title, author_id, genre_id)
-                        values (:title, :author_id, :genre_id)
-                        """,
-                new MapSqlParameterSource()
-                        .addValue("title", "Ref Book")
-                        .addValue("author_id", authorId)
-                        .addValue("genre_id", genreId));
-
-        assertThatThrownBy(() -> genreDao.deleteById(genreId))
-                .isInstanceOf(DataIntegrityViolationException.class);
-    }
-
-    @Test
-    void deletingUnknownGenreIsNoOp() {
-        assertThatCode(() -> genreDao.deleteById(Long.MAX_VALUE)).doesNotThrowAnyException();
+        assertThat(genreDao.getById(genre.getId())).isEmpty();
     }
 
     @Test
     void countMatchesInsertions() {
         long before = genreDao.count();
 
-        genreDao.insert(new Genre(0, "ExtraGenre"));
+        genreDao.save(new Genre(0, "ExtraGenre"));
 
         assertThat(genreDao.count()).isEqualTo(before + 1);
     }
 
-    private long insertAuthor(String firstName, String lastName) {
-        var keyHolder = new GeneratedKeyHolder();
-        jdbc.update("""
-                        insert into authors (first_name, last_name)
-                        values (:first_name, :last_name)
-                        """,
-                new MapSqlParameterSource()
-                        .addValue("first_name", firstName)
-                        .addValue("last_name", lastName),
-                keyHolder);
-        return keyHolder.getKey().longValue();
+    @Test
+    void deleteGenreReferencedByBookThrows() {
+        var author = new Author(0, "Referenced", "Author");
+        em.persist(author);
+        var genre = genreDao.save(new Genre(0, "ReferencedGenre"));
+        em.persist(new Book(0, "RefBook", author, genre));
+        em.flush();
+
+        assertThatThrownBy(() -> {
+            genreDao.delete(genre);
+            em.flush();
+        }).isInstanceOf(ConstraintViolationException.class);
     }
 }

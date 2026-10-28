@@ -1,6 +1,7 @@
 package ru.otus.spring.service;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.otus.spring.dao.AuthorDao;
 import ru.otus.spring.domain.Author;
 
@@ -8,6 +9,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@Transactional
 public class AuthorService {
 
     private final AuthorDao authorDao;
@@ -17,9 +19,7 @@ public class AuthorService {
     }
 
     public Author add(String firstName, String lastName) {
-        var author = new Author(0, firstName, lastName);
-        authorDao.insert(author);
-        return authorDao.getById(author.getId()).orElseThrow();
+        return authorDao.save(new Author(0, firstName, lastName));
     }
 
     public List<Author> getAll() {
@@ -34,11 +34,13 @@ public class AuthorService {
         if (authorDao.getById(id).isEmpty()) {
             return Optional.empty();
         }
-        authorDao.update(new Author(id, firstName, lastName));
-        return authorDao.getById(id);
+        var author = authorDao.getById(id).orElseThrow();
+        author.setFirstName(firstName);
+        author.setLastName(lastName);
+        return Optional.of(authorDao.save(author));
     }
 
     public void deleteById(long id) {
-        authorDao.deleteById(id);
+        authorDao.getById(id).ifPresent(authorDao::delete);
     }
 }

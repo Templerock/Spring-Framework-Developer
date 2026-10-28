@@ -1,15 +1,16 @@
 package ru.otus.spring.service;
 
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
-import org.springframework.context.annotation.Import;
-import ru.otus.spring.dao.GenreDao;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.transaction.annotation.Transactional;
+import ru.otus.spring.domain.Genre;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@JdbcTest
-@Import({GenreService.class, GenreDao.class})
+@SpringBootTest
+@Transactional
 class GenreServiceTest {
 
     @Autowired
@@ -22,7 +23,7 @@ class GenreServiceTest {
         assertThat(genre.getId()).isPositive();
         assertThat(genreService.getById(genre.getId()))
                 .get()
-                .extracting(g -> g.getName())
+                .extracting(Genre::getName)
                 .isEqualTo("Science Fiction");
     }
 
@@ -38,19 +39,19 @@ class GenreServiceTest {
 
     @Test
     void updateChangesExistingGenre() {
-        var genre = genreService.add("Old");
+        var genre = genreService.add("NewGenreName");
 
         var updated = genreService.update(genre.getId(), "New");
 
         assertThat(updated)
                 .get()
-                .extracting(g -> g.getName())
+                .extracting(Genre::getName)
                 .isEqualTo("New");
     }
 
     @Test
     void deleteByIdRemovesGenre() {
-        var genre = genreService.add("ToDelete");
+        var genre = genreService.add("ToDeleteGenre");
 
         genreService.deleteById(genre.getId());
 

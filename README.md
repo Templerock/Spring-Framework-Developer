@@ -58,6 +58,13 @@ shell:>
 | 6 | Animal Farm | Orwell | Dystopia |
 | 7 | 1984 | Orwell | Dystopia |
 
+Комментарии:
+
+| id | Текст | Книга |
+|---|---|---|
+| 1 | A moving novel about memory and aging | The Sense of an Ending (id 1) |
+| 2 | The first book about the young wizard | Harry Potter and the Philosopher's Stone (id 4) |
+
 ## Команды Spring Shell
 
 Авторы:
@@ -88,7 +95,17 @@ shell:>
 | `book list` | список всех книг с авторами и жанрами |
 | `book get --id <id>` | показать книгу по id |
 | `book update --id <id> --title <название> --author-id <id> --genre-id <id>` | изменить книгу |
-| `book delete --id <id>` | удалить книгу |
+| `book delete --id <id>` | удалить книгу (удаляет и комментарии книги) |
+
+Комментарии к книгам:
+
+| Команда | Описание |
+|---|---|
+| `comment add --book-id <id> --text <текст>` | добавить комментарий к книге |
+| `comment list` | список всех комментариев |
+| `comment get --id <id>` | показать комментарий по id |
+| `comment update --id <id> --text <текст>` | изменить текст комментария |
+| `comment delete --id <id>` | удалить комментарий |
 
 ## Пример сессии
 

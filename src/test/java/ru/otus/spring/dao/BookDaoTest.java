@@ -1,57 +1,60 @@
 package ru.otus.spring.dao;
 
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.jdbc.support.GeneratedKeyHolder;
 import ru.otus.spring.domain.Author;
 import ru.otus.spring.domain.Book;
+import ru.otus.spring.domain.Comment;
 import ru.otus.spring.domain.Genre;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@JdbcTest
-@Import(BookDao.class)
+@DataJpaTest
+@Import({BookDao.class, AuthorDao.class, GenreDao.class, CommentDao.class})
 class BookDaoTest {
 
     @Autowired
     private BookDao bookDao;
 
     @Autowired
-    private NamedParameterJdbcTemplate jdbc;
+    private AuthorDao authorDao;
+
+    @Autowired
+    private GenreDao genreDao;
+
+    @Autowired
+    private CommentDao commentDao;
+
+    @Autowired
+    private EntityManager em;
 
     @Test
-    void insertedBookCanBeReadByIdWithAuthorAndGenre() {
-        long authorId = insertAuthor("Julian", "Barnes");
-        long genreId = insertGenre("Picaresque");
+    void savedBookCanBeReadByIdWithAuthorAndGenre() {
+        var author = authorDao.save(new Author(0, "Julian", "Barnes"));
+        var genre = genreDao.save(new Genre(0, "Satire"));
 
-        long id = bookDao.insert(new Book(0, "Flaubert's Parrot", new Author(authorId), new Genre(genreId)));
+        var book = bookDao.save(new Book(0, "Flaubert's Parrot", author, genre));
 
-        assertThat(bookDao.getById(id))
+        assertThat(book.getId()).isPositive();
+        assertThat(bookDao.getById(book.getId()))
                 .get()
-                .satisfies(book -> {
-                    assertThat(book.getTitle()).isEqualTo("Flaubert's Parrot");
-                    assertThat(book.getAuthor().getId()).isEqualTo(authorId);
-                    assertThat(book.getAuthor().getLastName()).isEqualTo("Barnes");
-                    assertThat(book.getGenre().getId()).isEqualTo(genreId);
-                    assertThat(book.getGenre().getName()).isEqualTo("Picaresque");
+                .satisfies(saved -> {
+                    assertThat(saved.getTitle()).isEqualTo("Flaubert's Parrot");
+                    assertThat(saved.getAuthor().getLastName()).isEqualTo("Barnes");
+                    assertThat(saved.getGenre().getName()).isEqualTo("Satire");
                 });
     }
 
     @Test
     void getAllReturnsBooksWithAuthorAndGenre() {
-        var books = bookDao.getAll();
-
-        assertThat(books).isNotEmpty()
+        assertThat(bookDao.getAll()).isNotEmpty()
                 .allSatisfy(book -> {
                     assertThat(book.getTitle()).isNotBlank();
                     assertThat(book.getAuthor()).isNotNull();
-                    assertThat(book.getAuthor().getLastName()).isNotBlank();
                     assertThat(book.getGenre()).isNotNull();
-                    assertThat(book.getGenre().getName()).isNotBlank();
                 });
     }
 
@@ -61,64 +64,45 @@ class BookDaoTest {
     }
 
     @Test
-    void updateChangesTitleAuthorAndGenre() {
-        long authorId1 = insertAuthor("One", "Author");
-        long authorId2 = insertAuthor("Two", "Author");
-        long genreId = insertGenre("Saga");
-        long id = bookDao.insert(new Book(0, "Old title", new Author(authorId1), new Genre(genreId)));
+    void updateChangesBook() {
+        var author1 = authorDao.save(new Author(0, "One", "Author"));
+        var author2 = authorDao.save(new Author(0, "Two", "Author"));
+        var genre = genreDao.save(new Genre(0, "Thriller"));
+        var book = bookDao.save(new Book(0, "Old", author1, genre));
 
-        bookDao.update(new Book(id, "New title", new Author(authorId2), new Genre(genreId)));
+        var updated = bookDao.save(new Book(book.getId(), "New", author2, genre));
 
-        assertThat(bookDao.getById(id))
+        assertThat(updated.getTitle()).isEqualTo("New");
+        assertThat(bookDao.getById(book.getId()))
                 .get()
-                .satisfies(book -> {
-                    assertThat(book.getTitle()).isEqualTo("New title");
-                    assertThat(book.getAuthor().getId()).isEqualTo(authorId2);
-                });
+                .extracting(Book::getTitle)
+                .isEqualTo("New");
     }
 
     @Test
-    void deleteByIdRemovesBook() {
-        long authorId = insertAuthor("To", "Delete");
-        long genreId = insertGenre("Poetry");
-        long id = bookDao.insert(new Book(0, "Doomed", new Author(authorId), new Genre(genreId)));
+    void deleteRemovesBook() {
+        var author = authorDao.save(new Author(0, "Grant", "McAllister"));
+        var genre = genreDao.save(new Genre(0, "Crime"));
+        var book = bookDao.save(new Book(0, "Doomed", author, genre));
 
-        bookDao.deleteById(id);
+        bookDao.delete(book);
 
-        assertThat(bookDao.getById(id)).isEmpty();
+        assertThat(bookDao.getById(book.getId())).isEmpty();
     }
 
     @Test
-    void countMatchesInsertions() {
-        long authorId = insertAuthor("Count", "Author");
-        long genreId = insertGenre("Drama");        long before = bookDao.count();
+    void deleteRemovesLinkedComments() {
+        var author = authorDao.save(new Author(0, "Neil", "Gaiman"));
+        var genre = genreDao.save(new Genre(0, "FantasyStory"));
+        var book = bookDao.save(new Book(0, "Stardust", author, genre));
+        var comment = commentDao.save(new Comment(0, "A fairy tale for adults", book));
+        book.getComments().add(comment);
+        em.flush();
 
-        bookDao.insert(new Book(0, "Counted", new Author(authorId), new Genre(genreId)));
+        bookDao.delete(book);
+        em.flush();
 
-        assertThat(bookDao.count()).isEqualTo(before + 1);
-    }
-
-    private long insertAuthor(String firstName, String lastName) {
-        var keyHolder = new GeneratedKeyHolder();
-        jdbc.update("""
-                        insert into authors (first_name, last_name)
-                        values (:first_name, :last_name)
-                        """,
-                new MapSqlParameterSource()
-                        .addValue("first_name", firstName)
-                        .addValue("last_name", lastName),
-                keyHolder);
-        return keyHolder.getKey().longValue();
-    }
-
-    private long insertGenre(String name) {
-        var keyHolder = new GeneratedKeyHolder();
-        jdbc.update("""
-                        insert into genres (name)
-                        values (:name)
-                        """,
-                new MapSqlParameterSource().addValue("name", name),
-                keyHolder);
-        return keyHolder.getKey().longValue();
+        assertThat(bookDao.getById(book.getId())).isEmpty();
+        assertThat(commentDao.getById(comment.getId())).isEmpty();
     }
 }

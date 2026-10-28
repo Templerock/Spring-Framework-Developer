@@ -162,3 +162,21 @@ databaseChangeLog:
               - column:
                   name: genre_id
                   valueNumeric: 5
+        - insert:
+            tableName: comments
+            columns:
+              - column:
+                  name: comment_text
+                  value: A moving novel about memory and aging
+              - column:
+                  name: book_id
+                  valueNumeric: 1
+        - insert:
+            tableName: comments
+            columns:
+              - column:
+                  name: comment_text
+                  value: The first book about the young wizard
+              - column:
+                  name: book_id
+                  valueNumeric: 4

@@ -1,15 +1,15 @@
 package ru.otus.spring.service;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.otus.spring.dao.BookDao;
-import ru.otus.spring.domain.Author;
 import ru.otus.spring.domain.Book;
-import ru.otus.spring.domain.Genre;
 
 import java.util.List;
 import java.util.Optional;
 
 @Service
+@Transactional
 public class BookService {
 
     private final BookDao bookDao;
@@ -23,12 +23,12 @@ public class BookService {
     }
 
     public Optional<Book> add(String title, long authorId, long genreId) {
-        if (authorService.getById(authorId).isEmpty() || genreService.getById(genreId).isEmpty()) {
+        var author = authorService.getById(authorId);
+        var genre = genreService.getById(genreId);
+        if (author.isEmpty() || genre.isEmpty()) {
             return Optional.empty();
         }
-        var book = new Book(0, title, new Author(authorId), new Genre(genreId));
-        bookDao.insert(book);
-        return bookDao.getById(book.getId());
+        return Optional.of(bookDao.save(new Book(0, title, author.get(), genre.get())));
     }
 
     public List<Book> getAll() {
@@ -40,16 +40,20 @@ public class BookService {
     }
 
     public Optional<Book> update(long id, String title, long authorId, long genreId) {
-        if (bookDao.getById(id).isEmpty()
-                || authorService.getById(authorId).isEmpty()
-                || genreService.getById(genreId).isEmpty()) {
+        var book = bookDao.getById(id);
+        var author = authorService.getById(authorId);
+        var genre = genreService.getById(genreId);
+        if (book.isEmpty() || author.isEmpty() || genre.isEmpty()) {
             return Optional.empty();
         }
-        bookDao.update(new Book(id, title, new Author(authorId), new Genre(genreId)));
-        return bookDao.getById(id);
+        var existing = book.get();
+        existing.setTitle(title);
+        existing.setAuthor(author.get());
+        existing.setGenre(genre.get());
+        return Optional.of(bookDao.save(existing));
     }
 
     public void deleteById(long id) {
-        bookDao.deleteById(id);
+        bookDao.getById(id).ifPresent(bookDao::delete);
     }
 }
