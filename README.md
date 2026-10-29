@@ -59,39 +59,19 @@ mvn spring-boot:run
 | 1 | A moving novel about memory and aging | The Sense of an Ending (id 1) |
 | 2 | The first book about the young wizard | Harry Potter and the Philosopher's Stone (id 4) |
 
-## REST API
+## REST API (HATEOAS)
 
-Эндпоинты принимают и возвращают DTO. Авторы: `http://localhost:8080/api/authors`
+REST-слой построен на принципах HATEOAS через Spring Data REST (HAL, `spring.data.rest.base-path: /api`). Ответы содержат `_links`, связи объектов — гипермедиа-ссылками:
 
-| Метод | URL | Описание |
+| Ресурс | Пример | Описание |
 |---|---|---|
-| `GET` | `/api/authors` | список всех авторов (`AuthorDto`) |
-| `GET` | `/api/authors/{id}` | автор по id |
-| `POST` | `/api/authors` | создать автора (`{"firstName", "lastName"}`) |
-| `PUT` | `/api/authors/{id}` | изменить автора |
-| `DELETE` | `/api/authors/{id}` | удалить автора |
+| `GET /api/authors` | `/api/authors` | список авторов (`_embedded.authors[]` + `_links.self`) |
+| `GET /api/books`, `GET /api/comments`, `GET /api/genres` | `/api/books` | списки с `_links`, у книг связи `author`/`genre`, у комментариев `book` |
+| `POST /api/authors` | `{"firstName","lastName"}` | создать; создание книги — `{"title","author":"/api/authors/5","genre":"/api/genres/5"}`, комментария — `{"text","book":"/api/books/1"}` |
+| `PUT /api/authors/{id}`, `DELETE /api/authors/{id}` | полное обновление / удаление | `PUT /api/books/{id}` — `{"title","author":"…","genre":"…"}` |
+| `/api/books/search` | поиск | производные запросы (`findAllByBookId` и т.п.) |
 
-Жанры: `/api/genres` — аналогично (`GenreDto`, `{"name"}`).
-
-Книги: `/api/books`
-
-| Метод | URL | Описание |
-|---|---|---|
-| `GET` | `/api/books` | список всех книг (`BookDto`: id, title, authorId, genreId) |
-| `GET` | `/api/books/{id}` | книга по id |
-| `POST` | `/api/books` | создать книгу (`{"title", "authorId", "genreId"}`) |
-| `PUT` | `/api/books/{id}` | изменить книгу |
-| `DELETE` | `/api/books/{id}` | удалить книгу |
-
-Комментарии: `/api/comments`
-
-| Метод | URL | Описание |
-|---|---|---|
-| `GET` | `/api/comments` | список всех комментариев (`CommentDto`: id, text, bookId) |
-| `GET` | `/api/comments/{id}` | комментарий по id |
-| `POST` | `/api/comments` | создать комментарий (`{"text", "bookId"}`) |
-| `PUT` | `/api/comments/{id}` | изменить текст комментария |
-| `DELETE` | `/api/comments/{id}` | удалить комментарий |
+Пользователи (доступно только администратору): `/api/users`
 
 Пользователи (доступно только администратору): `/api/users`
 
@@ -128,6 +108,27 @@ curl http://localhost:8080/api/books -H "Authorization: Bearer <JWT>"
 - Без токена или с недействительным токеном — `401`.
 
 Токен подписан HMAC-SHA256 (`app.jwt.secret`), срок жизни — `app.jwt.expiration-ms` (по умолчанию 1 час).
+
+## Actuator
+
+Spring Boot Actuator включён и отдаёт:
+
+| Endpoint | Описание |
+|---|---|
+| `GET /actuator/health` | healthchecks (`db`, `diskSpace`, `bookRepository`) — открыт без токена |
+| `GET /actuator/health` (подробно) | подробности статуса, включая собственный `BookRepositoryHealthIndicator` (см. `show-details: always`) |
+| `GET /actuator/metrics` | метрики (JVM, JPA, HTTP и др.) |
+| `GET /actuator/logfile` | содержимое лог-файла (`logging.file.name`) |
+
+Все endpoint'ы Actuator, кроме `/actuator/health`, требуют аутентификации (JWT-токен).
+
+
+```bash
+curl -X POST http://localhost:8080/api/books \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <JWT>" \
+  -d '{"title":"Nineteen Eighty-Four","author":"/api/authors/5","genre":"/api/genres/5"}'
+```
 
 ## Swagger UI
 

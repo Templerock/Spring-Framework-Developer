@@ -3,6 +3,7 @@ package ru.otus.spring.service;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.transaction.annotation.Transactional;
 import ru.otus.spring.dto.BookDto;
 import ru.otus.spring.dto.CommentDto;
@@ -10,6 +11,7 @@ import ru.otus.spring.dto.CommentDto;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
+@WithMockUser(roles = "ADMIN")
 @Transactional
 class CommentServiceTest {
 
