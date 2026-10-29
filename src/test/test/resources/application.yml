@@ -1,0 +1,13 @@
+﻿spring:
+  datasource:
+    url: jdbc:h2:mem:librarydb;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: none
+app:
+  jwt:
+    secret: "library-jwt-secret-key-32-bytes-0123456789abcdef"
+    expiration-ms: 3600000
