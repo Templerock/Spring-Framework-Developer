@@ -1,6 +1,41 @@
 # Spring Library
 
-Приложение-библиотека: хранение книг, авторов, жанров и комментариев в реляционной БД. Управление выполняется через REST API (Spring MVC): CRUD для книг, авторов, жанров, комментариев и пользователей. Авторизация — на JWT (Spring Security): клиент получает токен на `/api/auth/login` и передаёт его в заголовке `Authorization: Bearer <token>`. Ролевые ограничения заданы аннотацией `@PreAuthorize`.
+Приложение-библиотека: хранение книг, авторов, жанров и комментариев в реляционной БД. REST API построен на HATEOAS-принципах через Spring Data REST: репозитории Author, Genre, Book, Comment автоматически экспонированы как REST-ресурсы (/api/authors, /api/genres, /api/books, /api/comments) с HATEOAS-ссылками (_links). Авторизация на JWT (Spring Security): клиент получает токен на /api/auth/login и передает его в заголовке Authorization: Bearer <token>, ролевые ограничения - через @PreAuthorize, включены Spring Boot Actuator: метрики, healthchecks и logfile, включая собственный HealthCheck-индикатор.
+
+## Технологии
+
+- Spring Boot 3.3, Spring MVC (REST API), JPA + Hibernate (Hibernate — только как JPA-провайдер), `EntityManager`, Hibernate-аннотация `@Fetch` (`FetchMode.SUBSELECT`) для решения N+1 для связи книга → комментарии
+- DTO (`ru.otus.spring.dto`) вместо JPA-сущностей в REST-слое — контроллеры отдают/принимают DTO
+- Springdoc OpenAPI (Swagger UI) — интерактивная документация REST API
+- H2 — in-memory реляционная БД
+- Liquibase — автоматическая проливка схемы и начальных данных при старте (DDL через Hibernate отключён: `spring.jpa.hibernate.ddl-auto: none`)
+- Spring Data REST (spring-boot-starter-data-rest) — REST-слой на HATEOAS-принципах: репозитории `Author`, `Genre`, `Book`, `Comment` экспонированы автоматически (`spring.data.rest.base-path: /api`) и отдают ответы в HAL с `_links`
+- Spring Boot Actuator (spring-boot-starter-actuator) — healthchecks (`/actuator/health`), метрики (`/actuator/metrics`), logfile (`/actuator/logfile`); свой HealthCheck-индикатор `BookRepositoryHealthIndicator` (проверяет доступность данных книг)
+- Spring Security — JWT-авторизация: stateless-конфигурация, `JwtService` (выпуск/проверка токенов), `JwtAuthenticationFilter`; разграничение доступа через аннотацию `@PreAuthorize`; `/api/users` — только `ROLE_ADMIN`
+- JUnit 5, AssertJ, `@DataJpaTest`/`@SpringBootTest` — тесты репозиториев и сервисов на H2 с Hibernate-диалектом (`org.hibernate.dialect.H2Dialect`)
+- `@Transactional` — только на методах сервисов
+
+## Требования
+
+- Java 17+
+- Maven 3.6+
+
+## Сборка и тесты
+
+```bash
+mvn clean test
+```
+
+## Структура приложения
+
+- `ru.otus.spring.domain` — доменные классы `Author`, `Genre`, `Book`, `Comment`, `User`
+- `ru.otus.spring.repository` — слой репозиториев Spring Data JPA: `AuthorRepository`, `GenreRepository`, `BookRepository`, `CommentRepository` (производные запросы и `@Query` с `join fetch` при `@Fetch(FetchMode.SUBSELECT)`), `UserRepository`
+- `ru.otus.spring.service` — сервисный слой: `AuthorService`, `GenreService`, `BookService`, `CommentService`, `UserService` (также реализует `UserDetailsService`)
+- `ru.otus.spring.dto` — DTO для REST API: `AuthorDto`, `GenreDto`, `BookDto`, `CommentDto`, `UserDto`
+- `ru.otus.spring.repository` — слой репозиториев Spring Data JPA + Spring Data REST: `AuthorRepository`, `GenreRepository`, `BookRepository`, `CommentRepository` экспонированы через `@RepositoryRestResource` (HATEOAS/HAL, endpoints `/api/authors`, `/api/genres`, `/api/books`, `/api/comments`), `UserRepository` — только внутренний (`exported = false`)
+- `ru.otus.spring.controller` — REST API: `AuthController` (`POST /api/auth/login`), `UserController` (`/api/users`, только `ROLE_ADMIN`), `ExternalServiceController` (`/api/external/*` — прокси-gateway к `/api/*` через `RestClient` с пробросом входящего `Authorization`-токена)
+- `ru.otus.spring.health` — `BookRepositoryHealthIndicator` — собственный HealthCheck-индикатор (Spring Boot Actuator)
+- `ru.otus.spring.security` — `SecurityConfig` (stateless chain, `BCryptPasswordEncoder`, `@EnableMethodSecurity`), `JwtService` (JWT: выпуск и проверка токенов), `JwtAuthenticationFilter`, `AuthResponseDto`, `LoginDto`; доступ к API — `@PreAuthorize` на контроллерах и репозиториях
 
 ## Запуск
 
@@ -15,6 +50,19 @@ mvn spring-boot:run
 - JDBC URL: `jdbc:h2:mem:librarydb`
 - User: `sa`
 - Password: (пусто)
+
+## Docker
+
+Multi-stage `Dockerfile` (build: `maven:3.9-eclipse-temurin-17`, runtime: `eclipse-temurin:17-jre`):
+
+```bash
+docker compose up -d --build   # собрать и запустить
+docker compose ps             # статус (healthcheck через Tomcat/HTTP на 8080)
+docker logs -f spring-library # логи в stdout
+docker compose down          # остановить
+```
+
+Best Practices: non-root user, логгирование в stdout (профиль `docker` отключает file-logging), healthcheck, H2-файл в volume `library-data:/data`, `restart: unless-stopped`, H2-консоль отключена.
 
 > БД in-memory: при каждом перезапуске структура и данные восстанавливаются из Liquibase.
 
@@ -101,6 +149,7 @@ curl -X POST http://localhost:8080/api/auth/login \
 ```bash
 curl http://localhost:8080/api/books -H "Authorization: Bearer <JWT>"
 ```
+
 Разграничение доступа задано аннотацией `@PreAuthorize`:
 
 - `/api/users/**` — только `ROLE_ADMIN`, остальным — `403`.
@@ -108,7 +157,6 @@ curl http://localhost:8080/api/books -H "Authorization: Bearer <JWT>"
 - Без токена или с недействительным токеном — `401`.
 
 Токен подписан HMAC-SHA256 (`app.jwt.secret`), срок жизни — `app.jwt.expiration-ms` (по умолчанию 1 час).
-
 
 ## ExternalServiceController (прокси/gateway)
 
@@ -123,8 +171,6 @@ curl http://localhost:8080/api/books -H "Authorization: Bearer <JWT>"
 | `GET /api/external/authors` | `GET /api/authors` |
 | `GET /api/external/genres` | `GET /api/genres` |
 | `GET /api/external/users` | `GET /api/users` (admin) |
-
-## Actuator
 
 Spring Boot Actuator включён и отдаёт:
 
