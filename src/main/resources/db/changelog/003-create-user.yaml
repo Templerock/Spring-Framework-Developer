@@ -1,0 +1,58 @@
+databaseChangeLog:
+  - changeSet:
+      id: 003-create-user
+      author: library
+      changes:
+        - createTable:
+            tableName: users
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: username
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: password
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: role
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            constraintName: uk_users_username
+            tableName: users
+            columnNames: username
+        - insert:
+            tableName: users
+            columns:
+              - column:
+                  name: username
+                  value: admin
+              - column:
+                  name: password
+                  value: "$2a$10$rss1uE0H/r7wRqV.LMu0genPQcs7IM6dk3HSgu2FBIGheumxg9WJm"
+              - column:
+                  name: role
+                  value: "ROLE_ADMIN"
+        - insert:
+            tableName: users
+            columns:
+              - column:
+                  name: username
+                  value: user
+              - column:
+                  name: password
+                  value: "$2a$10$jY1X19m/m8qZ.auMw82rmOb5whtyhxzLzwP4wGhpgBroNlviNoxdO"
+              - column:
+                  name: role
+                  value: "ROLE_USER"

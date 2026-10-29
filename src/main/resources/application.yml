@@ -1,0 +1,38 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:librarydb;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+  data:
+    rest:
+      base-path: /api
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+  jpa:
+    hibernate:
+      ddl-auto: none
+    generate-ddl: false
+    properties:
+        hibernate:
+        jdbc:
+          time_zone: UTC
+app:
+  jwt:
+    secret: "library-jwt-secret-key-32-bytes-0123456789abcdef"
+    expiration-ms: 3600000
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,logfile
+  endpoint:
+    health:
+      show-details: always
+logging:
+  file:
+    name: logs/application.log
