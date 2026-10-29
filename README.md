@@ -109,6 +109,21 @@ curl http://localhost:8080/api/books -H "Authorization: Bearer <JWT>"
 
 Токен подписан HMAC-SHA256 (`app.jwt.secret`), срок жизни — `app.jwt.expiration-ms` (по умолчанию 1 час).
 
+
+## ExternalServiceController (прокси/gateway)
+
+`ExternalServiceController` имитирует внешний сервис, который обращается к этому API: его эндпоинты внутри сами себя вызывают через `RestClient` (реальный HTTP-запрос на тот же инстанс), пробрасывая заголовок `Authorization` из входящего запроса. Авторизация работает по умолчанию (`@PreAuthorize("hasAnyRole('ADMIN','USER')")`).
+
+| Эндпоинт | Внутренний вызов |
+|---|---|
+| `GET /api/external/books?page&size` | `GET /api/books?page&size` |
+| `GET /api/external/books/{id}` | `GET /api/books/{id}` |
+| `POST /api/external/books` | `POST /api/books` |
+| `DELETE /api/external/books/{id}` | `DELETE /api/books/{id}` |
+| `GET /api/external/authors` | `GET /api/authors` |
+| `GET /api/external/genres` | `GET /api/genres` |
+| `GET /api/external/users` | `GET /api/users` (admin) |
+
 ## Actuator
 
 Spring Boot Actuator включён и отдаёт:
