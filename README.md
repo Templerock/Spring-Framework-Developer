@@ -1,6 +1,6 @@
 # Spring Library
 
-Приложение-библиотека: хранение книг, авторов, жанров и комментариев в реляционной БД. Управление выполняется через REST API (Spring MVC): CRUD для книг, авторов, жанров, комментариев и пользователей. Доступ к API — через Form-based аутентификацию (Spring Security).
+Приложение-библиотека: хранение книг, авторов, жанров и комментариев в реляционной БД. Управление выполняется через REST API (Spring MVC): CRUD для книг, авторов, жанров, комментариев и пользователей. Авторизация — на JWT (Spring Security): клиент получает токен на `/api/auth/login` и передаёт его в заголовке `Authorization: Bearer <token>`. Ролевые ограничения заданы аннотацией `@PreAuthorize`.
 
 ## Запуск
 
@@ -103,25 +103,31 @@ mvn spring-boot:run
 | `PUT` | `/api/users/{id}` | изменить пользователя (`{"username", "password"}`) |
 | `DELETE` | `/api/users/{id}` | удалить пользователя |
 
-## Аутентификация (как проверить)
+## Аутентификация на JWT
 
-Учётная запись администратора (создаётся через Liquibase `003-create-user.yaml`):
+Учётные записи, создаваемые при старте (Liquibase `003-create-user.yaml`):
 
 | Логин | Пароль | Роли |
 |---|---|---|
 | `admin` | `admin` | `ROLE_ADMIN` |
-
-1. После входа под `admin`/`admin` будут доступны все эндпоинты `http://localhost:8080/swagger-ui.html` (Swagger UI) или методы `curl`.
-2. Для проверки разграничения можно войти под `user`/`user` — `/api/users/**` вернёт `403` (только `ROLE_ADMIN`).
-
-- Все страницы и API — только для аутентифицированных; `/login` — доступна всем.
-- Пароли в БД хранятся BCrypt-хэшами.
+| `user` | `user` | `ROLE_USER` |
 
 ```bash
-curl -X POST http://localhost:8080/api/books \
+curl -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"title":"Nineteen Eighty-Four","authorId":5,"genreId":5}'
+  -d '{"username":"admin","password":"admin"}'
 ```
+
+```bash
+curl http://localhost:8080/api/books -H "Authorization: Bearer <JWT>"
+```
+Разграничение доступа задано аннотацией `@PreAuthorize`:
+
+- `/api/users/**` — только `ROLE_ADMIN`, остальным — `403`.
+- CRUD-эндпоинты `/api/authors`, `/api/genres`, `/api/books`, `/api/comments` — `ROLE_ADMIN` и `ROLE_USER`.
+- Без токена или с недействительным токеном — `401`.
+
+Токен подписан HMAC-SHA256 (`app.jwt.secret`), срок жизни — `app.jwt.expiration-ms` (по умолчанию 1 час).
 
 ## Swagger UI
 

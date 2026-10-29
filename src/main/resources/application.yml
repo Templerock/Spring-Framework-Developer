@@ -15,6 +15,10 @@ spring:
       ddl-auto: none
     generate-ddl: false
     properties:
-      hibernate:
+        hibernate:
         jdbc:
           time_zone: UTC
+app:
+  jwt:
+    secret: "library-jwt-secret-key-32-bytes-0123456789abcdef"
+    expiration-ms: 3600000

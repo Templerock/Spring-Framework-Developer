@@ -14,8 +14,9 @@ class UserRepositoryTest {
     private UserRepository userRepository;
 
     @Test
-    void seededAdminExists() {
+    void seededUsersExist() {
         assertThat(userRepository.findByUsername("admin")).isPresent();
+        assertThat(userRepository.findByUsername("user")).isPresent();
     }
 
     @Test
