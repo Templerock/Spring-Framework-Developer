@@ -12,12 +12,15 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.kafka.test.context.EmbeddedKafka;
 
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+        properties = "spring.kafka.bootstrap-servers=${spring.embedded.kafka.brokers}")
+@EmbeddedKafka(partitions = 1, topics = "notification-command")
 class ExternalServiceControllerTest {
 
     @LocalServerPort

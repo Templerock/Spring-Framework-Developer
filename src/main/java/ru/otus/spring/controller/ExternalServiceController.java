@@ -18,6 +18,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
+import ru.otus.spring.kafka.AuditNotificationProducer;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping(path = "/api/external")
@@ -26,11 +29,14 @@ import org.springframework.web.util.UriComponentsBuilder;
 public class ExternalServiceController {
 
     private final RestClient restClient;
+    private final AuditNotificationProducer auditNotificationProducer;
 
-    public ExternalServiceController(RestClient.Builder builder) {
+    public ExternalServiceController(RestClient.Builder builder,
+                                    AuditNotificationProducer auditNotificationProducer) {
         this.restClient = builder
                 .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
                 .build();
+        this.auditNotificationProducer = auditNotificationProducer;
     }
 
     @GetMapping("/books")
@@ -71,26 +77,50 @@ public class ExternalServiceController {
     }
 
     private ResponseEntity<JsonNode> proxy(HttpServletRequest request, HttpMethod method, String relativeUri, JsonNode body) {
+        String correlationId = UUID.randomUUID().toString();
         String uri = toSelfUri(request, relativeUri);
-        var call = restClient.method(method)
-                .uri(uri)
-                .header(HttpHeaders.AUTHORIZATION, authorization(request));
-        if (body != null) {
-            call.contentType(MediaType.APPLICATION_JSON).body(body);
+        auditNotificationProducer.sendIncomingCall(correlationId, method.name(), relativeUri);
+        try {
+            var call = restClient.method(method)
+                    .uri(uri)
+                    .header(HttpHeaders.AUTHORIZATION, authorization(request));
+            if (body != null) {
+                call.contentType(MediaType.APPLICATION_JSON).body(body);
+            }
+            ResponseEntity<JsonNode> response = call.retrieve()
+                    .onStatus(status -> true, (req, res) -> { })
+                    .toEntity(JsonNode.class);
+            auditNotificationProducer.sendCallResult(correlationId, method.name(), relativeUri,
+                    response.getStatusCode().value(), result(response.getStatusCode().value()));
+            return response;
+        } catch (RuntimeException e) {
+            auditNotificationProducer.sendCallResult(correlationId, method.name(), relativeUri, 500, "ERROR");
+            throw e;
         }
-        return call.retrieve()
-                .onStatus(status -> true, (req, res) -> { })
-                .toEntity(JsonNode.class);
     }
 
     private ResponseEntity<Void> proxyVoid(HttpServletRequest request, HttpMethod method, String relativeUri) {
+        String correlationId = UUID.randomUUID().toString();
         String uri = toSelfUri(request, relativeUri);
-        return restClient.method(method)
-                .uri(uri)
-                .header(HttpHeaders.AUTHORIZATION, authorization(request))
-                .retrieve()
-                .onStatus(status -> true, (req, res) -> { })
-                .toBodilessEntity();
+        auditNotificationProducer.sendIncomingCall(correlationId, method.name(), relativeUri);
+        try {
+            ResponseEntity<Void> response = restClient.method(method)
+                    .uri(uri)
+                    .header(HttpHeaders.AUTHORIZATION, authorization(request))
+                    .retrieve()
+                    .onStatus(status -> true, (req, res) -> { })
+                    .toBodilessEntity();
+            auditNotificationProducer.sendCallResult(correlationId, method.name(), relativeUri,
+                    response.getStatusCode().value(), result(response.getStatusCode().value()));
+            return response;
+        } catch (RuntimeException e) {
+            auditNotificationProducer.sendCallResult(correlationId, method.name(), relativeUri, 500, "ERROR");
+            throw e;
+        }
+    }
+
+    private String result(int statusCode) {
+        return statusCode < 400 ? "SUCCESS" : "ERROR";
     }
 
     private String toSelfUri(HttpServletRequest request, String relativeUri) {

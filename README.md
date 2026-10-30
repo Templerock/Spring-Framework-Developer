@@ -51,14 +51,22 @@ mvn spring-boot:run
 - User: `sa`
 - Password: (пусто)
 
+## Kafka audit
+
+`ExternalServiceController` перед вызовом внутреннего эндпоинта отправляет в топик `notification-command` сообщение `INCOMING_CALL` (метод + uri + correlationId), после вызова — `CALL_RESULT` (статус + `SUCCESS`/`ERROR`). Листенер `AuditNotificationListener` читает топик и пишет сообщения в лог (`AUDIT :: received notification: ...`).
+
+- Конфигурация: `spring.kafka.*` (host-порт `localhost:29092`; внутри docker-сети compose — `kafka:9092`).
+- Топик: `app.kafka.audit.topic=notification-command`, группа `notification-audit-consumer`.
+- В тестах листенер отключён (`spring.kafka.listener.auto-startup=false`).
+
 ## Docker
 
 Multi-stage `Dockerfile` (build: `maven:3.9-eclipse-temurin-17`, runtime: `eclipse-temurin:17-jre`):
 
 ```bash
-docker compose up -d --build   # собрать и запустить
+docker compose up -d --build   # собрать и запустить (app + kafka, KRaft, все образы с Docker Hub)
 docker compose ps             # статус (healthcheck через Tomcat/HTTP на 8080)
-docker logs -f spring-library # логи в stdout
+docker logs -f spring-library # логи в stdout (+ AUDIT-уведомления из Kafka)
 docker compose down          # остановить
 ```
 
