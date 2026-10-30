@@ -1,0 +1,72 @@
+spring:
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            connect-timeout: 2000
+            read-timeout: 5000
+  datasource:
+    url: jdbc:h2:mem:librarydb;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+  data:
+    rest:
+      base-path: /api
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  kafka:
+    bootstrap-servers: localhost:29092
+    consumer:
+      group-id: notification-audit-consumer
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+  jpa:
+    hibernate:
+      ddl-auto: none
+    generate-ddl: false
+    properties:
+        hibernate:
+        jdbc:
+          time_zone: UTC
+app:
+  jwt:
+    secret: "library-jwt-secret-key-32-bytes-0123456789abcdef"
+    expiration-ms: 3600000
+  kafka:
+    audit:
+      topic: notification-command
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        failure-rate-threshold: 50
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        minimum-number-of-calls: 3
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 3
+  timelimiter:
+    configs:
+      default:
+        timeout-duration: 5s
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,logfile
+  endpoint:
+    health:
+      show-details: always
+logging:
+  file:
+    name: logs/application.log
