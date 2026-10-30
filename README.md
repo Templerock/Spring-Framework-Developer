@@ -33,7 +33,8 @@ mvn clean test
 - `ru.otus.spring.service` — сервисный слой: `AuthorService`, `GenreService`, `BookService`, `CommentService`, `UserService` (также реализует `UserDetailsService`)
 - `ru.otus.spring.dto` — DTO для REST API: `AuthorDto`, `GenreDto`, `BookDto`, `CommentDto`, `UserDto`
 - `ru.otus.spring.repository` — слой репозиториев Spring Data JPA + Spring Data REST: `AuthorRepository`, `GenreRepository`, `BookRepository`, `CommentRepository` экспонированы через `@RepositoryRestResource` (HATEOAS/HAL, endpoints `/api/authors`, `/api/genres`, `/api/books`, `/api/comments`), `UserRepository` — только внутренний (`exported = false`)
-- `ru.otus.spring.controller` — REST API: `AuthController` (`POST /api/auth/login`), `UserController` (`/api/users`, только `ROLE_ADMIN`), `ExternalServiceController` (`/api/external/*` — прокси-gateway к `/api/*` через `RestClient` с пробросом входящего `Authorization`-токена)
+- `ru.otus.spring.client` — Feign-клиент `ExternalLibraryClient` к внутреннему API (включение клиентов — `@EnableFeignClients` в `ru.otus.spring.config.FeignConfig`)
+- `ru.otus.spring.controller` — REST API: `AuthController` (`POST /api/auth/login`), `UserController` (`/api/users`, только `ROLE_ADMIN`), `ExternalServiceController` (`/api/external/*` — прокси-gateway к `/api/*` через Feign с пробросом входящего `Authorization`-токена)
 - `ru.otus.spring.health` — `BookRepositoryHealthIndicator` — собственный HealthCheck-индикатор (Spring Boot Actuator)
 - `ru.otus.spring.security` — `SecurityConfig` (stateless chain, `BCryptPasswordEncoder`, `@EnableMethodSecurity`), `JwtService` (JWT: выпуск и проверка токенов), `JwtAuthenticationFilter`, `AuthResponseDto`, `LoginDto`; доступ к API — `@PreAuthorize` на контроллерах и репозиториях
 
@@ -58,6 +59,14 @@ mvn spring-boot:run
 - Конфигурация: `spring.kafka.*` (host-порт `localhost:29092`; внутри docker-сети compose — `kafka:9092`).
 - Топик: `app.kafka.audit.topic=notification-command`, группа `notification-audit-consumer`.
 - В тестах листенер отключён (`spring.kafka.listener.auto-startup=false`).
+
+## Отказоустойчивость внешних вызовов (Resilience4j + Feign)
+
+Внешние вызовы (`/api/external/*`) выполняются через **Feign Client** (`ExternalLibraryClient`, Spring Cloud OpenFeign) и изолированы **Circuit Breaker Resilience4j** (`spring-cloud-starter-circuitbreaker-resilience4j`). Hystrix больше не развивается и выпилен из Spring Cloud 2023 (несовместим с Spring Boot 3), поэтому по условиям задания использован Resilience4j.
+
+- `ExternalLibraryGateway` — сервис, оборачивает каждый вызов в `@CircuitBreaker(name = "library", fallbackMethod = "...")`; при недоступности внутреннего API возвращает `503 Service Unavailable` вместо падения.
+- Конфигурация `resilience4j.*` в `application.yml`: count-based sliding window (10 вызовов), порог сбоев 50%, open → half-open → closed.
+- Таймауты Feign: `spring.cloud.openfeign.client.config.default.read-timeout/connect-timeout` (2s/5s).
 
 ## Docker
 
@@ -168,7 +177,7 @@ curl http://localhost:8080/api/books -H "Authorization: Bearer <JWT>"
 
 ## ExternalServiceController (прокси/gateway)
 
-`ExternalServiceController` имитирует внешний сервис, который обращается к этому API: его эндпоинты внутри сами себя вызывают через `RestClient` (реальный HTTP-запрос на тот же инстанс), пробрасывая заголовок `Authorization` из входящего запроса. Авторизация работает по умолчанию (`@PreAuthorize("hasAnyRole('ADMIN','USER')")`).
+`ExternalServiceController` имитирует внешний сервис, который обращается к этому API: его эндпоинты внутри сами себя вызывают через **Feign Client** (`ExternalLibraryGateway` → `ExternalLibraryClient`, реальный HTTP-запрос на тот же инстанс), пробрасывая заголовок `Authorization` из входящего запроса. Каждый вызов обёрнут в **Circuit Breaker Resilience4j** с фоллбэком (`503` при отказе). Авторизация работает по умолчанию (`@PreAuthorize("hasAnyRole('ADMIN','USER')")`).
 
 | Эндпоинт | Внутренний вызов |
 |---|---|

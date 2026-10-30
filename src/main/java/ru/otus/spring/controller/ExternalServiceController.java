@@ -4,8 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -16,11 +14,13 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 import ru.otus.spring.kafka.AuditNotificationProducer;
+import ru.otus.spring.service.ExternalLibraryGateway;
 
+import java.net.URI;
 import java.util.UUID;
+import java.util.function.Function;
 
 @RestController
 @RequestMapping(path = "/api/external")
@@ -28,14 +28,12 @@ import java.util.UUID;
 @SecurityRequirement(name = "bearerAuth")
 public class ExternalServiceController {
 
-    private final RestClient restClient;
+    private final ExternalLibraryGateway gateway;
     private final AuditNotificationProducer auditNotificationProducer;
 
-    public ExternalServiceController(RestClient.Builder builder,
-                                    AuditNotificationProducer auditNotificationProducer) {
-        this.restClient = builder
-                .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
-                .build();
+    public ExternalServiceController(ExternalLibraryGateway gateway,
+                                     AuditNotificationProducer auditNotificationProducer) {
+        this.gateway = gateway;
         this.auditNotificationProducer = auditNotificationProducer;
     }
 
@@ -43,78 +41,74 @@ public class ExternalServiceController {
     public ResponseEntity<JsonNode> getBooks(HttpServletRequest request,
                                              @RequestParam(defaultValue = "0") int page,
                                              @RequestParam(defaultValue = "20") int size) {
-        return proxy(request, HttpMethod.GET, "/api/books?page=" + page + "&size=" + size, null);
+        return proxyNode(request, "GET", "/api/books",
+                uri -> gateway.getBooks(uri, authorization(request), page, size));
     }
 
     @GetMapping("/books/{id}")
     public ResponseEntity<JsonNode> getBook(HttpServletRequest request, @PathVariable long id) {
-        return proxy(request, HttpMethod.GET, "/api/books/" + id, null);
+        return proxyNode(request, "GET", "/api/books/" + id,
+                uri -> gateway.getBook(uri, authorization(request), id));
     }
 
     @PostMapping("/books")
     public ResponseEntity<JsonNode> createBook(HttpServletRequest request, @RequestBody JsonNode body) {
-        return proxy(request, HttpMethod.POST, "/api/books", body);
+        return proxyNode(request, "POST", "/api/books",
+                uri -> gateway.createBook(uri, authorization(request), body));
     }
 
     @DeleteMapping("/books/{id}")
     public ResponseEntity<Void> deleteBook(HttpServletRequest request, @PathVariable long id) {
-        return proxyVoid(request, HttpMethod.DELETE, "/api/books/" + id);
+        return proxyVoid(request, "DELETE", "/api/books/" + id,
+                uri -> gateway.deleteBook(uri, authorization(request), id));
     }
 
     @GetMapping("/authors")
     public ResponseEntity<JsonNode> getAuthors(HttpServletRequest request) {
-        return proxy(request, HttpMethod.GET, "/api/authors", null);
+        return proxyNode(request, "GET", "/api/authors",
+                uri -> gateway.getAuthors(uri, authorization(request)));
     }
 
     @GetMapping("/genres")
     public ResponseEntity<JsonNode> getGenres(HttpServletRequest request) {
-        return proxy(request, HttpMethod.GET, "/api/genres", null);
+        return proxyNode(request, "GET", "/api/genres",
+                uri -> gateway.getGenres(uri, authorization(request)));
     }
 
     @GetMapping("/users")
     public ResponseEntity<JsonNode> getUsers(HttpServletRequest request) {
-        return proxy(request, HttpMethod.GET, "/api/users", null);
+        return proxyNode(request, "GET", "/api/users",
+                uri -> gateway.getUsers(uri, authorization(request)));
     }
 
-    private ResponseEntity<JsonNode> proxy(HttpServletRequest request, HttpMethod method, String relativeUri, JsonNode body) {
+    private ResponseEntity<JsonNode> proxyNode(HttpServletRequest request, String method, String relativeUri,
+                                              Function<URI, ResponseEntity<JsonNode>> call) {
         String correlationId = UUID.randomUUID().toString();
-        String uri = toSelfUri(request, relativeUri);
-        auditNotificationProducer.sendIncomingCall(correlationId, method.name(), relativeUri);
+        String uri = toSelfUri(request);
+        auditNotificationProducer.sendIncomingCall(correlationId, method, relativeUri);
         try {
-            var call = restClient.method(method)
-                    .uri(uri)
-                    .header(HttpHeaders.AUTHORIZATION, authorization(request));
-            if (body != null) {
-                call.contentType(MediaType.APPLICATION_JSON).body(body);
-            }
-            ResponseEntity<JsonNode> response = call.retrieve()
-                    .onStatus(status -> true, (req, res) -> { })
-                    .toEntity(JsonNode.class);
-            auditNotificationProducer.sendCallResult(correlationId, method.name(), relativeUri,
+            ResponseEntity<JsonNode> response = call.apply(URI.create(uri));
+            auditNotificationProducer.sendCallResult(correlationId, method, relativeUri,
                     response.getStatusCode().value(), result(response.getStatusCode().value()));
             return response;
         } catch (RuntimeException e) {
-            auditNotificationProducer.sendCallResult(correlationId, method.name(), relativeUri, 500, "ERROR");
+            auditNotificationProducer.sendCallResult(correlationId, method, relativeUri, 500, "ERROR");
             throw e;
         }
     }
 
-    private ResponseEntity<Void> proxyVoid(HttpServletRequest request, HttpMethod method, String relativeUri) {
+    private ResponseEntity<Void> proxyVoid(HttpServletRequest request, String method, String relativeUri,
+                                          Function<URI, ResponseEntity<Void>> call) {
         String correlationId = UUID.randomUUID().toString();
-        String uri = toSelfUri(request, relativeUri);
-        auditNotificationProducer.sendIncomingCall(correlationId, method.name(), relativeUri);
+        String uri = toSelfUri(request);
+        auditNotificationProducer.sendIncomingCall(correlationId, method, relativeUri);
         try {
-            ResponseEntity<Void> response = restClient.method(method)
-                    .uri(uri)
-                    .header(HttpHeaders.AUTHORIZATION, authorization(request))
-                    .retrieve()
-                    .onStatus(status -> true, (req, res) -> { })
-                    .toBodilessEntity();
-            auditNotificationProducer.sendCallResult(correlationId, method.name(), relativeUri,
+            ResponseEntity<Void> response = call.apply(URI.create(uri));
+            auditNotificationProducer.sendCallResult(correlationId, method, relativeUri,
                     response.getStatusCode().value(), result(response.getStatusCode().value()));
             return response;
         } catch (RuntimeException e) {
-            auditNotificationProducer.sendCallResult(correlationId, method.name(), relativeUri, 500, "ERROR");
+            auditNotificationProducer.sendCallResult(correlationId, method, relativeUri, 500, "ERROR");
             throw e;
         }
     }
@@ -123,8 +117,8 @@ public class ExternalServiceController {
         return statusCode < 400 ? "SUCCESS" : "ERROR";
     }
 
-    private String toSelfUri(HttpServletRequest request, String relativeUri) {
-        return UriComponentsBuilder.fromUriString(relativeUri)
+    private String toSelfUri(HttpServletRequest request) {
+        return UriComponentsBuilder.fromPath("")
                 .scheme(request.getScheme())
                 .host(request.getServerName())
                 .port(request.getServerPort())
